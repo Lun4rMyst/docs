@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trim &amp; Door Takeoff</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F3F2ED;--surface:#FFFFFF;--surface2:#ECEAE3;--surface3:#E0DDD4;--ink:#1D2129;--muted:#636A75;--line:#D5D2C9;--line2:#E5E2DA;
+  --accent:#1D5DB5;--accent-ink:#FFFFFF;--accent-soft:#E2EBF9;
+  --door:#D2601C;--win:#0F8577;--room:#1D5DB5;--ai:#7A3FC2;
+  --good:#2C7A4B;--warn:#A96A0F;--warn-soft:#FBF1DC;--bad:#B7332B;--bad-soft:#FAE5E3;
+  --viewer:#DEDBD2;
+  --shadow:0 1px 2px rgba(20,24,32,.10),0 10px 28px rgba(20,24,32,.10);
+  --r:6px;
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171B;--surface:#1D2025;--surface2:#262A31;--surface3:#30353D;--ink:#E8E6E0;--muted:#9BA2AC;--line:#333841;--line2:#2A2E35;
+    --accent:#6FA0EE;--accent-ink:#0E1420;--accent-soft:#1E2A3D;
+    --door:#F08A45;--win:#3FB8A8;--room:#6FA0EE;--ai:#B48CEB;
+    --good:#5CC08A;--warn:#E3A84A;--warn-soft:#3A2E14;--bad:#F07A70;--bad-soft:#3F1E1B;
+    --viewer:#0F1114;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171B;--surface:#1D2025;--surface2:#262A31;--surface3:#30353D;--ink:#E8E6E0;--muted:#9BA2AC;--line:#333841;--line2:#2A2E35;
+  --accent:#6FA0EE;--accent-ink:#0E1420;--accent-soft:#1E2A3D;
+  --door:#F08A45;--win:#3FB8A8;--room:#6FA0EE;--ai:#B48CEB;
+  --good:#5CC08A;--warn:#E3A84A;--warn-soft:#3A2E14;--bad:#F07A70;--bad-soft:#3F1E1B;
+  --viewer:#0F1114;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.4);
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:5px 8px;min-width:0;width:100%}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=number]{font-family:var(--mono);font-variant-numeric:tabular-nums}
+input[type=checkbox]{width:auto;margin:0 6px 0 0;accent-color:var(--accent)}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+label.chk{flex-direction:row;align-items:center;color:var(--ink);font-size:13px;padding-top:18px}
+label.chk.flat{padding-top:0}
+.btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:6px 12px;border-radius:var(--r);cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{background:var(--surface2);filter:none}
+.btn.small{padding:3px 8px;font-size:12px}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.ai{border-color:var(--ai);color:var(--ai);background:transparent}
+.btn.ai:hover{background:var(--surface2);filter:none}
+.btn:disabled{opacity:.45;cursor:default;filter:none}
+.app{display:flex;flex-direction:column;height:100%;min-height:0}
+.topbar{display:flex;align-items:center;gap:12px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;white-space:nowrap}
+.brand svg{width:22px;height:22px;color:var(--accent)}
+.projname{flex:1 1 200px;max-width:420px}
+.topbtns{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 440px;flex:1;min-height:0}
+.planpane{display:flex;flex-direction:column;min-height:0;min-width:0;border-right:1px solid var(--line)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.grp{display:flex;flex-wrap:wrap;gap:2px;align-items:center;background:var(--surface2);padding:2px;border-radius:var(--r)}
+.tbtn{border:0;background:transparent;padding:5px 9px;border-radius:4px;cursor:pointer;white-space:nowrap;line-height:1.2}
+.tbtn:hover{background:var(--surface3)}
+.tbtn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.tbtn.ai{color:var(--ai)}
+.tbtn.ai[aria-pressed=true]{background:var(--ai);color:#fff}
+.tbtn:disabled{opacity:.4;cursor:default}
+.pageinfo,.zoomval{font:12px var(--mono);padding:0 6px;min-width:64px;text-align:center}
+.pagelabel{width:160px;padding:3px 8px;font-size:12px}
+.grp select{width:auto;padding:3px 6px;font-size:12px}
+.viewer{position:relative;flex:1;overflow:auto;background:var(--viewer);min-height:0;outline:none}
+.viewer.drop::after{content:"Drop PDF to open";position:absolute;inset:8px;border:2px dashed var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--accent);background:rgba(29,93,181,.08);font-weight:600;pointer-events:none}
+.viewer.tool-select{cursor:default}
+.viewer.panning{cursor:grabbing}
+.viewer.tool-calib,.viewer.tool-poly,.viewer.tool-rect,.viewer.tool-ai{cursor:crosshair}
+.viewer.tool-door,.viewer.tool-window{cursor:copy}
+.stage{position:relative}
+.stage canvas{position:absolute;left:24px;top:24px;display:block}
+.stage canvas.pdf{background:#fff;box-shadow:var(--shadow)}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:24px}
+.empty>div{max-width:400px;background:var(--surface);padding:24px;border-radius:10px;box-shadow:var(--shadow)}
+.empty strong{color:var(--ink);font-size:16px}
+.empty p{margin:8px 0 16px}
+.empty .err{color:var(--bad)}
+.statusbar{display:flex;gap:16px;justify-content:space-between;padding:4px 12px;font:12px var(--mono);background:var(--surface);border-top:1px solid var(--line);color:var(--muted);flex-wrap:wrap}
+.statusbar .ok{color:var(--good)}.statusbar .warn{color:var(--warn)}
+.side{display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
+.tabs button{flex:1;border:0;background:transparent;padding:10px 4px;border-bottom:2px solid transparent;cursor:pointer;color:var(--muted);font-weight:500;font-size:13px}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.cnt{font:11px var(--mono);background:var(--surface2);padding:1px 6px;border-radius:10px;margin-left:2px}
+.tabpane{display:none;overflow:auto;padding:14px 16px 32px;flex:1;min-height:0}
+.tabpane.on{display:block}
+h2{font-size:15px;margin:0 0 10px}
+h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 0 8px;font-weight:600}
+h3:first-child{margin-top:0}
+.row2,.row3,.row4{display:grid;gap:8px;margin-bottom:8px}
+.row2{grid-template-columns:1fr 1fr}.row3{grid-template-columns:1fr 1fr 1fr}.row4{grid-template-columns:repeat(4,1fr)}
+.panelhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
+.panelhead h2{margin:0}
+.panelhead .sp{flex:1}
+.card{border:1px solid var(--line);border-radius:var(--r);margin-bottom:8px;background:var(--surface)}
+.card.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.cardhead{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;user-select:none}
+.cardhead:hover{background:var(--surface2)}
+.tag{font:500 12px var(--mono);padding:2px 6px;border-radius:4px;color:#fff;min-width:40px;text-align:center;white-space:nowrap}
+.tag.door{background:var(--door)}.tag.win{background:var(--win)}.tag.room{background:var(--room)}
+.cardhead .ttl{flex:1;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cardhead .meta{font:12px var(--mono);color:var(--muted);white-space:nowrap}
+.cardhead .meta.warn{color:var(--warn)}
+.editor{padding:10px;border-top:1px solid var(--line2)}
+.editbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.stats{font:12px var(--mono);color:var(--muted);margin:6px 0 8px;display:flex;gap:14px;flex-wrap:wrap}
+.stats b{color:var(--ink);font-weight:500}
+.dedrow{display:grid;grid-template-columns:1fr 100px 28px;gap:6px;margin-bottom:6px;align-items:center}
+.dedrow button{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;width:auto}
+.hintbox{font-size:12px;color:var(--muted);background:var(--surface2);padding:8px 10px;border-radius:var(--r);margin-bottom:12px}
+.hintbox.ai{border-left:3px solid var(--ai)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.tile{background:var(--surface2);border-radius:var(--r);padding:10px 12px;min-width:0}
+.tile .k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.tile .v{font:500 20px var(--mono);margin-top:2px;font-variant-numeric:tabular-nums}
+.tile .s{font-size:12px;color:var(--muted);margin-top:2px}
+.tile.door .v{color:var(--door)}.tile.win .v{color:var(--win)}
+.tablewrap{overflow-x:auto;margin-bottom:12px;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top;white-space:nowrap}
+th{background:var(--surface2);font-weight:500;color:var(--muted)}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.tot td{font-weight:600;border-top:2px solid var(--line);background:var(--surface2)}
+tr:last-child td{border-bottom:0}
+.warnlist{margin:0 0 12px;padding:0;list-style:none}
+.warnlist li{background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn);padding:6px 10px;margin-bottom:6px;border-radius:0 4px 4px 0;font-size:12px}
+.modal{position:fixed;inset:0;background:rgba(10,12,16,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modalbox{background:var(--surface);color:var(--ink);border-radius:10px;padding:18px 20px;width:min(560px,100%);max-height:90vh;overflow:auto;box-shadow:var(--shadow)}
+.modalbox h3{margin:0 0 12px;text-transform:none;letter-spacing:0;font-size:15px;color:var(--ink)}
+.modalbox label{margin-bottom:10px}
+.modalbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.modalbox textarea{width:100%;min-height:220px;font:12px var(--mono)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;z-index:60;box-shadow:var(--shadow);max-width:90vw}
+.aiprog{position:fixed;right:16px;bottom:16px;background:var(--surface);border:1px solid var(--ai);border-radius:8px;padding:10px 14px;display:flex;gap:12px;align-items:center;z-index:55;box-shadow:var(--shadow);font-size:13px;max-width:min(420px,90vw)}
+.aiprog::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:var(--ai);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.aiprog::before{animation:none}}
+kbd{font:11px var(--mono);background:var(--surface2);border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--muted)}
+.muted{color:var(--muted)}.small{font-size:12px}
+.exportbtns{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}
+.keys{font-size:12px;color:var(--muted);line-height:1.8}
+@media (max-width:900px){
+  .work{grid-template-columns:1fr;grid-template-rows:minmax(300px,52vh) minmax(0,1fr)}
+  .planpane{border-right:0;border-bottom:1px solid var(--line)}
+  .topbtns{margin-left:0}
+  .row3,.row4{grid-template-columns:1fr 1fr}
+  .pagelabel{width:120px}
+}
+@media print{
+  .topbar,.planpane,.tabs,.exportbtns,.toast,.aiprog,.modal,.panelhead button{display:none!important}
+  .work{display:block}
+  .tabpane{display:none!important}
+  #tab-takeoff{display:block!important;overflow:visible}
+  body{background:#fff;color:#000}
+  .app{height:auto}
+  .tablewrap{overflow:visible}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<header class="topbar">
+  <div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3zM3 12h9M12 4v16M12 12l5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Trim &amp; Door Takeoff</span></div>
+  <input id="projName" class="projname" type="text" placeholder="Job name or address" aria-label="Job name">
+  <div class="topbtns">
+    <button class="btn" id="btnOpenPdf">Open PDF</button>
+    <button class="btn ghost" id="btnSample" title="Load a small demonstration plan">Sample plan</button>
+    <button class="btn ghost" id="btnSave" title="Save this takeoff as a .json file you can reload later">Save project</button>
+    <button class="btn ghost" id="btnLoad">Load project</button>
+    <button class="btn ghost" id="btnNew" title="Clear rooms, doors and windows">New</button>
+    <button class="btn ghost" id="btnUndo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+  </div>
+  <input type="file" id="pdfFile" accept="application/pdf,.pdf" hidden>
+  <input type="file" id="projFile" accept="application/json,.json" hidden>
+</header>
+<main class="work">
+  <section class="planpane">
+    <div class="tools" role="toolbar" aria-label="Plan tools">
+      <div class="grp" id="toolGrp">
+        <button class="tbtn" data-tool="select" aria-pressed="true" title="Select and move items, drag to pan (V)">Select</button>
+        <button class="tbtn" data-tool="calib" aria-pressed="false" title="Click two ends of a known dimension (C)">Calibrate</button>
+        <button class="tbtn" data-tool="poly" aria-pressed="false" title="Click each corner of a room, click the first corner again to close (R)">Trace room</button>
+        <button class="tbtn" data-tool="rect" aria-pressed="false" title="Click two opposite corners of a rectangular room (X)">Rect room</button>
+        <button class="tbtn" data-tool="door" aria-pressed="false" title="Click on the plan to place a door (D)">Door</button>
+        <button class="tbtn" data-tool="window" aria-pressed="false" title="Click on the plan to place a window (W)">Window</button>
+        <button class="tbtn ai" data-tool="ai" aria-pressed="false" title="Drag a box around part of the plan and Claude reads the rooms, doors and windows in it (A)" hidden>Read area with Claude</button>
+      </div>
+      <div class="grp">
+        <button class="tbtn" id="prevPage" title="Previous sheet">&#8249;</button>
+        <span class="pageinfo" id="pageInfo">–</span>
+        <button class="tbtn" id="nextPage" title="Next sheet">&#8250;</button>
+        <input id="pageLabel" class="pagelabel" type="text" placeholder="Sheet name, e.g. Ground floor" aria-label="Sheet name">
+      </div>
+      <div class="grp">
+        <button class="tbtn" id="zoomOut" title="Zoom out (-)">&minus;</button>
+        <span class="zoomval" id="zoomVal">100%</span>
+        <button class="tbtn" id="zoomIn" title="Zoom in (+)">+</button>
+        <button class="tbtn" id="zoomFit" title="Fit sheet in view (0)">Fit</button>
+      </div>
+      <div class="grp">
+        <select id="scalePreset" aria-label="Drawing scale">
+          <option value="">Scale…</option>
+          <option value="20">1:20</option>
+          <option value="50">1:50</option>
+          <option value="100">1:100</option>
+          <option value="200">1:200</option>
+          <option value="custom">Other ratio…</option>
+        </select>
+      </div>
+    </div>
+    <div class="viewer tool-select" id="viewer" tabindex="0" aria-label="Floor plan">
+      <div class="stage" id="stage"><canvas id="pdfCanvas" class="pdf"></canvas><canvas id="ovCanvas" class="ov"></canvas></div>
+      <div class="empty" id="emptyState"><div>
+        <strong>Open a PDF floor plan</strong>
+        <p id="emptyMsg">Drop it here or use Open PDF. Then set the scale, trace the rooms, place the doors and windows, and read the takeoff.</p>
+        <button class="btn" id="btnOpenPdf2">Open PDF</button> <button class="btn ghost" id="btnSample2">Try the sample plan</button>
+      </div></div>
+    </div>
+    <div class="statusbar"><span id="scaleStatus">No plan loaded</span><span id="hint"></span></div>
+  </section>
+  <aside class="side">
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="spec" aria-selected="true">Spec</button>
+      <button role="tab" data-tab="rooms" aria-selected="false">Rooms <span class="cnt" id="cntRooms">0</span></button>
+      <button role="tab" data-tab="doors" aria-selected="false">Doors &amp; windows <span class="cnt" id="cntDoors">0</span></button>
+      <button role="tab" data-tab="takeoff" aria-selected="false">Takeoff</button>
+    </nav>
+    <div class="tabpane on" id="tab-spec" role="tabpanel"></div>
+    <div class="tabpane" id="tab-rooms" role="tabpanel"></div>
+    <div class="tabpane" id="tab-doors" role="tabpanel"></div>
+    <div class="tabpane" id="tab-takeoff" role="tabpanel"></div>
+  </aside>
+</main>
+<div class="modal" id="modal" hidden><div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><h3 id="modalTitle"></h3><div id="modalBody"></div><div class="modalbtns"><button class="btn ghost" id="modalCancel">Cancel</button><button class="btn" id="modalOk">OK</button></div></div></div>
+<div class="toast" id="toast" hidden></div>
+<div class="aiprog" id="aiProg" hidden><span id="aiMsg">Thinking…</span><button class="btn ghost small" id="aiStop">Stop</button></div>
+<datalist id="dl-hands"><option value="LH in"><option value="LH out"><option value="RH in"><option value="RH out"><option value="Slides left"><option value="Slides right"></datalist>
+<datalist id="dl-leaves"><option value="Flush panel primed"><option value="Solid core primed"><option value="Hume Accent"><option value="Hume Linear"><option value="Corinthian Blonde Oak"><option value="Corinthian Deco"><option value="Corinthian Balmoral"><option value="Glazed entry"><option value="Mirror sliding"><option value="Vinyl sliding"></datalist>
+<datalist id="dl-rooms"><option value="ENTRY"><option value="HALL"><option value="LIVING"><option value="FAMILY"><option value="MEALS"><option value="DINING"><option value="KITCHEN"><option value="PANTRY"><option value="BED 1"><option value="BED 2"><option value="BED 3"><option value="BED 4"><option value="MASTER"><option value="WIR"><option value="ROBE"><option value="ENS"><option value="BATH"><option value="WC"><option value="PDR"><option value="LAUNDRY"><option value="STUDY"><option value="THEATRE"><option value="RUMPUS"><option value="GARAGE"><option value="ALFRESCO"><option value="PORCH"><option value="LINEN"><option value="STORE"></datalist>
+<datalist id="dl-profiles"><option value="Bevelled"><option value="Splayed"><option value="Half splay"><option value="Pencil round"><option value="Colonial"><option value="Lambs tongue"><option value="Federation"><option value="Square dressed"><option value="Shadowline"></datalist>
+<datalist id="dl-skirtsizes"><option value="67x18"><option value="67x12"><option value="92x18"><option value="92x12"><option value="115x18"><option value="140x18"><option value="185x18"></datalist>
+<datalist id="dl-archsizes"><option value="42x18"><option value="42x12"><option value="67x18"><option value="67x12"><option value="92x18"></datalist>
+<datalist id="dl-materials"><option value="Primed MDF"><option value="Primed FJ pine"><option value="Tasmanian oak"><option value="Meranti"><option value="Pine (clear)"></datalist>
+<datalist id="dl-deductions"><option value="Kitchen cabinets / kickboard"><option value="Built-in robe"><option value="Robe opening"><option value="Vanity"><option value="Bath"><option value="Shower"><option value="Fireplace"><option value="Stairs"><option value="Sliding door"><option value="Wall tiles"></datalist>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/viewer.js"></script>
+<script src="js/reading.js"></script>
+<script src="js/panels.js"></script>
+<script src="js/takeoff.js"></script>
+</body>
+</html>
