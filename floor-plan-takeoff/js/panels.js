@@ -153,7 +153,7 @@ function renderSpec() {
   <h3>Measuring rules</h3>
   <div class="row2"><label>Skirting lost per opening: door width + (mm)<input data-k="openingAllowance" type="number" step="10" title="Covers the jamb and architrave each side of the opening"></label><label>Architrave leg: door height + (mm)<input data-k="archLegAllow" type="number" step="10"></label></div>
   <div class="row2"><label>Architrave head: door width + (mm)<input data-k="archHeadAllow" type="number" step="10"></label><label>Window architrave: each piece + (mm)<input data-k="archWinAllow" type="number" step="10"></label></div>
-  <div class="row3"><label class="chk flat"><input data-k="skirtWet" type="checkbox"> Timber skirting in wet areas</label><label class="chk flat"><input data-k="skirtRobes" type="checkbox"> Skirting inside robes</label><label class="chk flat"><input data-k="skirtExternal" type="checkbox"> Skirting to garage and outdoor rooms</label></div>
+  <div class="row3"><label class="chk flat"><input data-k="skirtWet" type="checkbox"> Timber skirting in wet areas</label><label class="chk flat"><input data-k="skirtRobes" type="checkbox"> Skirting inside robes</label><label class="chk flat"><input data-k="skirtExternal" type="checkbox"> Skirting to outdoor rooms (alfresco, porch, balcony)</label></div>
   <p class="small muted">These set the default for new rooms. You can still switch skirting on or off on each room.</p>
   <h3>Doors</h3>
   <div class="row3"><label>Default height (mm)<input data-k="doorHeight" type="number" step="10"></label><label>Default width (mm)<input data-k="doorWidth" type="number" step="10"></label><label>Thickness (mm)<input data-k="doorThick" type="number"></label></div>

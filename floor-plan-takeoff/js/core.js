@@ -58,7 +58,7 @@ const DEFAULT_SPEC = {
   skirtProfile: 'Bevelled', skirtSize: '92x18', skirtMaterial: 'Primed MDF', skirtStock: 5400, skirtWaste: 10, skirtColour: '', skirtRate: 0, skirtUnit: 'length',
   archProfile: 'Bevelled', archSize: '67x18', archMaterial: 'Primed MDF', archStock: 5400, archWaste: 10, archColour: '', archRate: 0, archUnit: 'length',
   windowsArch: true, openingAllowance: 200, archLegAllow: 100, archHeadAllow: 250, archWinAllow: 150,
-  skirtWet: false, skirtRobes: false, skirtExternal: false,
+  skirtWet: false, skirtRobes: true, skirtExternal: false,
   doorHeight: 2040, doorWidth: 820, doorThick: 35, doorLeaf: 'Flush panel primed', extLeaf: 'Solid core primed', jamb: '90x35 primed pine',
   doorColour: '', frameColour: '', hardware: '', doorRate: 0, notes: ''
 };
@@ -78,7 +78,7 @@ const DOOR_TYPES = {
 };
 const LEVER_LABEL = { passage: 'Passage lever set', privacy: 'Privacy lever set', entrance: 'Entrance set', dummy: 'Dummy lever', cavity: 'Cavity slider set (flush pull)' };
 const WET_RE = /\b(BATH|BATHROOM|ENS|ENSUITE|WC|W\.C|PDR|POWDER|TOILET|LAUNDRY|LDRY|L'DRY)\b/i;
-const EXT_RE = /\b(GARAGE|ALFRESCO|PORCH|PATIO|VERANDAH?|BALCONY|DECK|TERRACE|CARPORT|PORTICO)\b/i;
+const EXT_RE = /\b(ALFRESCO|PORCH|PATIO|VERANDAH?|BALCONY|DECK|TERRACE|CARPORT|PORTICO)\b/i;   // outdoor areas: no skirting. Garages are ordinary rooms and get skirting.
 const ROBE_RE = /\b(WIR|ROBE|WARDROBE|WALK[- ]?IN)\b/i;
 function defaultSkirting(name) {
   const n = String(name || '');
