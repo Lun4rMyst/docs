@@ -13,7 +13,8 @@ function roomAreaM2(r) {
 }
 const qtyOf = o => Math.max(1, Math.round(num(o.qty, 1)) || 1);
 const leavesOf = o => Math.max(1, Math.round(num(o.leaves, 1)) || 1);
-function doorOpeningMm(d) { return (num(d.width) * leavesOf(d) + num(S.spec.openingAllowance)) * qtyOf(d); }
+function doorSpanMm(d) { return (DOOR_TYPES[d.type] || {}).noLeaf ? num(d.width) : num(d.width) * leavesOf(d); }   // by-others sliders etc: width is the whole opening, leaves are panels
+function doorOpeningMm(d) { return (doorSpanMm(d) + num(S.spec.openingAllowance)) * qtyOf(d); }
 function roomSkirting(r) {
   const per = roomPerimeterMm(r);
   const doors = S.doors.filter(d => d.skirtDeduct && (d.fromRoom === r.id || d.toRoom === r.id));
@@ -24,7 +25,7 @@ function roomSkirting(r) {
 }
 function archForDoor(d) {
   const sides = num(d.archSides); if (!sides) return 0;
-  const H = num(d.height), W = num(d.width) * leavesOf(d);
+  const H = num(d.height), W = doorSpanMm(d);
   if (!(H > 0 && W > 0)) return 0;
   return sides * (2 * (H + num(S.spec.archLegAllow)) + (W + num(S.spec.archHeadAllow))) * qtyOf(d);
 }
@@ -266,7 +267,7 @@ function renderDoors() {
 }
 function doorCard(d) {
   const open = UI.openDoor === d.id, sel = V.sel === d.id, where = whereStr(d);
-  const meta = `<span class="meta${d.x == null ? ' warn' : ''}">${d.x == null ? 'not placed' : ((DOOR_TYPES[d.type] || {}).noLeaf ? `${num(d.width) * leavesOf(d)} wide` : sizeStr(d))}</span>`;
+  const meta = `<span class="meta${d.x == null ? ' warn' : ''}">${d.x == null ? 'not placed' : ((DOOR_TYPES[d.type] || {}).noLeaf ? `${doorSpanMm(d)} wide${leavesOf(d) > 1 ? ` (${leavesOf(d)} panels)` : ''}` : sizeStr(d))}</span>`;
   return `<div class="card${sel ? ' sel' : ''}" data-id="${d.id}" data-kind="door"><div class="cardhead"><span class="tag door">${esc(d.tag)}</span><span class="ttl">${esc(doorLabel(d))}${where ? ` <span class="muted">· ${esc(where)}</span>` : ''}</span>${meta}</div>${open ? doorEditor(d) : ''}</div>`;
 }
 function doorEditor(d) {
