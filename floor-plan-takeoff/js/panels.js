@@ -178,6 +178,25 @@ function renderSpec() {
 }
 
 /* ---- rooms ---- */
+function aiQueueBox() {
+  const q = V.aiQueue || [], lab = pn => (S.pages[pn] && S.pages[pn].label) ? ` (${esc(S.pages[pn].label)})` : '';
+  const item = (it, i) => { const k = mmPerPt(it.page); const size = it.whole ? 'whole sheet' : (k ? `${(it.rect.w * k / 1000).toFixed(1)} × ${(it.rect.h * k / 1000).toFixed(1)} m area` : 'area'); const n = aiQueueImages(it);
+    return `<li>Sheet ${it.page}${lab(it.page)} · ${size} · ${n} image${n === 1 ? '' : 's'}<button class="btn ghost small" data-aiq-rm="${i}" title="Remove from the queue">×</button></li>`; };
+  return `<div class="aiq ai-only" hidden>
+    <div class="aiqhead"><b>Claude queue</b><span class="sp"></span><button class="btn ghost small" id="aiqSheet" ${V.pdf ? '' : 'disabled'} title="Adds the whole sheet you are looking at">+ This sheet</button><button class="btn ghost small" id="aiqArea" ${V.pdf ? '' : 'disabled'} title="Drag boxes on the plan; each one is queued">+ Area</button></div>
+    ${q.length ? `<ul class="aiqlist">${q.map(item).join('')}</ul><div class="small muted" id="aiqEst">Estimating…</div><div class="aiqact"><button class="btn ai small" id="aiqSend">Send ${q.length} to Claude</button><button class="btn ghost small" id="aiqClear">Clear</button></div>`
+      : `<div class="small muted">Queue several sheets or areas, then send them in one go. Each item is one Claude request; nothing is sent until you press Send.</div>`}
+  </div>`;
+}
+function bindAiQueue(el) {
+  const s = $('#aiqSheet', el); if (s) s.onclick = () => { if (V.base) queueAiRead({ x: 0, y: 0, w: V.base.width, h: V.base.height }, V.pageNum, true); };
+  const a = $('#aiqArea', el); if (a) a.onclick = () => { setTool('ai', { queue: true }); toast('Drag a box around each area to queue it. Press V when you are done.', 5000); };
+  $$('[data-aiq-rm]', el).forEach(b => b.onclick = () => { V.aiQueue.splice(+b.dataset.aiqRm, 1); renderRooms(); });
+  const c = $('#aiqClear', el); if (c) c.onclick = () => { V.aiQueue = []; renderRooms(); };
+  const snd = $('#aiqSend', el); if (snd) snd.onclick = () => runAiQueue();
+  const est = $('#aiqEst', el);
+  if (est) aiQueueEstimate().then(e => { const el2 = $('#aiqEst'); if (!el2) return; el2.textContent = `${e.calls} request${e.calls === 1 ? '' : 's'}, ${e.images} image${e.images === 1 ? '' : 's'}, roughly ${Math.round(e.tokensIn / 1000)}k tokens in plus Claude's replies (a few thousand each) on the ${S.project.aiTier || 'complex'} tier. An estimate: the app is not told the actual usage.`; }).catch(() => { });
+}
 function renderRooms() {
   const el = $('#tab-rooms');
   const list = S.rooms.slice().sort((a, b) => (a.page - b.page) || (S.rooms.indexOf(a) - S.rooms.indexOf(b)));
@@ -187,11 +206,13 @@ function renderRooms() {
     <button class="btn ghost small" id="roomFindText" ${V.pdf ? '' : 'disabled'} title="Looks for room names with sizes printed under them on this sheet">Find from plan text</button>
     <button class="btn ai small ai-only" id="roomAi" ${V.pdf ? '' : 'disabled'} hidden title="Claude reads the whole sheet and lists its rooms, doors and windows">Read sheet with Claude</button>
   </div>
+  ${aiQueueBox()}
   ${list.length ? '' : `<div class="hintbox">No rooms yet. Trace them on the plan with <b>Trace room</b> or <b>Rect room</b>, add them by size, or try <b>Find from plan text</b> on a vector PDF${CAP.sample ? ', or <b>Read sheet with Claude</b>' : ''}.</div>`}
   ${list.map(roomCard).join('')}`;
   $('#roomAddDims').onclick = addRoomByDims;
   $('#roomFindText').onclick = runFindRooms;
   $('#roomAi').onclick = () => { if (V.base) aiRead({ x: 0, y: 0, w: V.base.width, h: V.base.height }); };
+  bindAiQueue(el);
   updateCapUI();
   bindCards(el);
 }

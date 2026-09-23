@@ -245,11 +245,11 @@ const HINTS = {
   window: 'Click the window on the plan',
   ai: 'Drag a box around the part of the plan you want Claude to read'
 };
-function setTool(t) {
-  V.tool = t; V.draft = null;
+function setTool(t, opts) {
+  V.tool = t; V.draft = null; V.aiQueueMode = !!(t === 'ai' && opts && opts.queue);
   $$('#toolGrp .tbtn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
   viewer.className = 'viewer tool-' + t;
-  $('#hint').textContent = HINTS[t] || '';
+  $('#hint').textContent = V.aiQueueMode ? 'Drag a box around each area you want queued for Claude. Press V when you are done.' : (HINTS[t] || '');
   drawOverlay();
 }
 let panState = null;
@@ -327,7 +327,7 @@ stage.addEventListener('pointerup', e => {
   if (V.draft && V.draft.kind === 'ai') {
     const [a, b] = V.draft.pts; V.draft = null; drawOverlay();
     const r = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
-    if (r.w * V.zoom > 20 && r.h * V.zoom > 20) aiRead(r); else toast('Drag a larger box');
+    if (r.w * V.zoom > 20 && r.h * V.zoom > 20) { if (V.aiQueueMode) queueAiRead(r, V.pageNum, false); else aiRead(r); } else toast('Drag a larger box');
   }
 });
 stage.addEventListener('pointercancel', () => { panState = null; V.drag = null; viewer.classList.remove('panning'); });

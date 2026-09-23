@@ -189,13 +189,46 @@ List every room, door and window in the area. Rules:
 Reply with only JSON in exactly this shape:
 {"scale":"1:100 or null","rooms":[{"name":"BED 1","length_mm":3600,"width_mm":3300,"x":12.5,"y":40.2,"wet_area":false,"estimated":false}],"doors":[{"tag":"D01","type":"hinged","height_mm":2040,"width_mm":820,"leaves":1,"from_room":"HALL","to_room":"BED 1","x":10.1,"y":45.0}],"windows":[{"tag":"W01","width_mm":1800,"height_mm":1200,"room":"BED 1","x":5.0,"y":40.0}],"notes":"anything the estimator should check"}`;
 }
-async function aiRead(rect) {
+/* ---------- queue several sheets or areas, then send them one after another ---------- */
+function aiQueueImages(it) { return CAP.images ? (CAP.maxImages >= 5 && it.rect.w * it.rect.h > 300 * 300 ? 5 : 1) : 0; }
+function queueAiRead(rect, pn, whole) {
+  V.aiQueue = V.aiQueue || [];
+  V.aiQueue.push({ page: pn, rect: { x: rect.x, y: rect.y, w: rect.w, h: rect.h }, whole: !!whole });
+  renderRooms(); showTab('rooms');
+  toast(whole ? `Sheet ${pn} queued (${V.aiQueue.length} in the queue)` : `Area queued (${V.aiQueue.length} in the queue)`);
+}
+async function aiQueueEstimate() {
+  const q = V.aiQueue || []; let images = 0, chars = 0;
+  for (const it of q) {
+    images += aiQueueImages(it);
+    const lines = V.pdf ? await pageLines(it.page) : [];
+    const inR = lines.filter(l => l.cx >= it.rect.x && l.cx <= it.rect.x + it.rect.w && l.cy >= it.rect.y && l.cy <= it.rect.y + it.rect.h);
+    chars += Math.min(24000, inR.reduce((s, l) => s + l.str.length + 12, 0));
+  }
+  return { calls: q.length, images, tokensIn: Math.round(images * 1600 + chars / 4 + q.length * 1200) };
+}
+async function runAiQueue() {
+  const q = (V.aiQueue || []).slice(); if (!q.length) return;
   if (!CAP.sample) { toast('Reading with Claude only works in the published app'); return; }
-  if (!V.page) return;
-  const pn = V.pageNum, page = V.page;
-  aiCtl = new AbortController(); const signal = aiCtl.signal;
-  aiProgress('Preparing the plan image…');
+  const tot = { rooms: 0, doors: 0, windows: 0 }, notes = []; let done = 0, stopped = false, failed = 0;
+  for (const it of q) {
+    const res = await aiRead(it.rect, it.page, { quiet: true, keep: true, prefix: `Read ${done + 1} of ${q.length}, sheet ${it.page}: ` });
+    if (!res || res.cancelled) { stopped = true; break; }
+    if (res.error) { failed++; notes.push(`Sheet ${it.page}: ${res.error}`); } else { tot.rooms += res.rooms; tot.doors += res.doors; tot.windows += res.windows; if (res.notes) notes.push(`Sheet ${it.page}: ${res.notes}`); }
+    V.aiQueue = (V.aiQueue || []).filter(x => x !== it); done++; renderRooms();
+  }
+  aiDone(); renderRooms();
+  toast(`${stopped ? 'Stopped after' : 'Finished'} ${done} of ${q.length} reads${failed ? ` (${failed} failed)` : ''}: ${tot.rooms} rooms, ${tot.doors} doors and ${tot.windows} windows added${S.project.aiTierApplied ? ` (${S.project.aiTierApplied} tier)` : ''}`, 9000);
+  if (notes.length) modal.open({ title: 'Notes from Claude', body: `<p class="small">${notes.map(esc).join('<br>')}</p>`, ok: 'OK', cancel: null });
+}
+async function aiRead(rect, pn = V.pageNum, o = {}) {
+  if (!CAP.sample) { toast('Reading with Claude only works in the published app'); return null; }
+  if (!V.pdf) return null;
+  aiCtl = new AbortController(); const signal = aiCtl.signal; const pre = o.prefix || '';
+  aiProgress(pre + 'Preparing the plan image…');
+  let out = null;
   try {
+    const page = (pn === V.pageNum && V.page) ? V.page : await V.pdf.getPage(pn);
     const images = [];
     if (CAP.images) {
       images.push(await renderRegionBlob(page, rect.x, rect.y, rect.w, rect.h, 1.2e6));
@@ -210,23 +243,27 @@ async function aiRead(rect) {
     let txt = inR.map(l => `${JSON.stringify(l.str)} @ ${((l.cx - rect.x) / rect.w * 100).toFixed(1)},${((l.cy - rect.y) / rect.h * 100).toFixed(1)}`).join('\n');
     if (txt.length > 24000) txt = txt.slice(0, 24000) + '\n…(more text truncated)';
     const prompt = buildAiPrompt(images.length, txt);
-    aiProgress('Claude is reading the plan — this can take a minute or two');
-    const opts = { modelTier: S.project.aiTier || 'complex', signal, onText: ({ text }) => aiProgress(`Claude is writing up what it found… ${text.length} characters`) };
+    aiProgress(pre + 'Claude is reading the plan — this can take a minute or two');
+    const opts = { modelTier: S.project.aiTier || 'complex', signal, onText: ({ text }) => aiProgress(pre + `Claude is writing up what it found… ${text.length} characters`) };
     if (images.length) opts.images = images;
     const call = typeof CAP.sample === 'function' ? CAP.sample : CAP.sample.sample;
     const reply = await call(prompt, opts);
     S.project.aiTierAsked = opts.modelTier; S.project.aiTierApplied = reply.modelTierApplied || opts.modelTier;
     const data = parseAiJson(reply.text);
-    const res = applyAi(data, rect, pn);
-    const sub = S.project.aiTierApplied !== opts.modelTier ? ` (answered by the ${S.project.aiTierApplied} tier, your plan does not include ${opts.modelTier})` : ` (${S.project.aiTierApplied} tier)`;
-    toast(`Claude${sub} found ${res.rooms} rooms, ${res.doors} doors and ${res.windows} windows — check them in the Rooms and Doors tabs`, 8000);
+    const res = applyAi(data, rect, pn); out = { ...res, notes: data && data.notes ? String(data.notes) : '' };
     if ($('#aiTierApplied')) renderSpec();
-    if (data && data.notes) modal.open({ title: 'Notes from Claude', body: `<p class="small">${esc(data.notes)}</p>`, ok: 'OK', cancel: null });
+    if (!o.quiet) {
+      const sub = S.project.aiTierApplied !== opts.modelTier ? ` (answered by the ${S.project.aiTierApplied} tier, your plan does not include ${opts.modelTier})` : ` (${S.project.aiTierApplied} tier)`;
+      toast(`Claude${sub} found ${res.rooms} rooms, ${res.doors} doors and ${res.windows} windows — check them in the Rooms and Doors tabs`, 8000);
+      if (data && data.notes) modal.open({ title: 'Notes from Claude', body: `<p class="small">${esc(data.notes)}</p>`, ok: 'OK', cancel: null });
+    }
   } catch (e) {
     console.warn(e);
     const code = e && e.code;
-    if (code !== 'cancelled') toast(aiErrorCopy(code, e), 6000);
-  } finally { aiDone(); aiCtl = null; }
+    out = code === 'cancelled' ? { cancelled: true } : { error: aiErrorCopy(code, e) };
+    if (code !== 'cancelled' && !o.quiet) toast(aiErrorCopy(code, e), 6000);
+  } finally { if (!o.keep) aiDone(); aiCtl = null; }
+  return out;
 }
 function parseAiJson(text) {
   let s = String(text || '').trim(); const f = s.match(/```(?:json)?\s*([\s\S]*?)```/); if (f) s = f[1];
