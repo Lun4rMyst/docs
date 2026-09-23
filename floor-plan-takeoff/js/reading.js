@@ -213,15 +213,26 @@ async function aiRead(rect) {
     aiProgress('Claude is reading the plan — this can take a minute or two');
     const opts = { modelTier: S.project.aiTier || 'complex', signal, onText: ({ text }) => aiProgress(`Claude is writing up what it found… ${text.length} characters`) };
     if (images.length) opts.images = images;
-    const data = await CAP.sample.json(prompt, opts);
+    const call = typeof CAP.sample === 'function' ? CAP.sample : CAP.sample.sample;
+    const reply = await call(prompt, opts);
+    S.project.aiTierAsked = opts.modelTier; S.project.aiTierApplied = reply.modelTierApplied || opts.modelTier;
+    const data = parseAiJson(reply.text);
     const res = applyAi(data, rect, pn);
-    toast(`Claude found ${res.rooms} rooms, ${res.doors} doors and ${res.windows} windows — check them in the Rooms and Doors tabs`, 7000);
+    const sub = S.project.aiTierApplied !== opts.modelTier ? ` (answered by the ${S.project.aiTierApplied} tier, your plan does not include ${opts.modelTier})` : ` (${S.project.aiTierApplied} tier)`;
+    toast(`Claude${sub} found ${res.rooms} rooms, ${res.doors} doors and ${res.windows} windows — check them in the Rooms and Doors tabs`, 8000);
+    if ($('#aiTierApplied')) renderSpec();
     if (data && data.notes) modal.open({ title: 'Notes from Claude', body: `<p class="small">${esc(data.notes)}</p>`, ok: 'OK', cancel: null });
   } catch (e) {
     console.warn(e);
     const code = e && e.code;
     if (code !== 'cancelled') toast(aiErrorCopy(code, e), 6000);
   } finally { aiDone(); aiCtl = null; }
+}
+function parseAiJson(text) {
+  let s = String(text || '').trim(); const f = s.match(/```(?:json)?\s*([\s\S]*?)```/); if (f) s = f[1];
+  const a = s.indexOf('{'), b = s.lastIndexOf('}');
+  if (a < 0 || b < a) throw Object.assign(new Error('Claude did not return JSON'), { code: 'invalid_json', text });
+  try { return JSON.parse(s.slice(a, b + 1)); } catch (e) { throw Object.assign(new Error('Claude returned malformed JSON'), { code: 'invalid_json', text }); }
 }
 function aiErrorCopy(code, e) {
   switch (code) {

@@ -108,6 +108,7 @@ function showTab(t) {
 $$('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 function updateCounts() { $('#cntRooms').textContent = S.rooms.length; $('#cntDoors').textContent = S.doors.length + S.windows.length; }
 function renderAll() { renderRooms(); renderDoors(); renderTakeoff(); updateCounts(); drawOverlay(); saveSoon(); }
+const tierLabel = t => ({ complex: 'Complex', default: 'Default', quick: 'Quick' })[t] || t;
 function bindEditor(root, obj, onChange) {
   $$('[data-k]', root).forEach(inp => {
     const k = inp.dataset.k;
@@ -164,9 +165,14 @@ function renderSpec() {
   <div class="row2"><label>Door leaf $ each<input data-k="doorRate" type="number" step="0.01"></label></div>
   <h3>Notes</h3>
   <label>Project notes (printed with the takeoff)<textarea data-k="notes" rows="3"></textarea></label>
+  <h3>Reading with Claude</h3>
+  <div class="row2"><label>Model tier for reads<select id="aiTier"><option value="complex">Complex: most capable, thinks longest</option><option value="default">Default: balanced everyday model</option><option value="quick">Quick: fastest, no thinking</option></select></label><label>Last read answered by<input id="aiTierApplied" readonly></label></div>
+  <p class="small muted">The published app can ask for a tier, not a named model or a thinking budget. If the viewer's plan does not include the tier asked for, the platform answers with a cheaper one and the box on the right shows which.</p>
   <h3>Keyboard</h3>
   <div class="keys"><kbd>V</kbd> select · <kbd>C</kbd> calibrate · <kbd>R</kbd> trace room · <kbd>X</kbd> rect room · <kbd>D</kbd> door · <kbd>W</kbd> window · <kbd>Enter</kbd> close room · <kbd>Esc</kbd> cancel · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> zoom · <kbd>Ctrl</kbd>+wheel zoom · <kbd>Space</kbd>+drag pan · <kbd>PgUp</kbd> <kbd>PgDn</kbd> sheets</div>`;
   bindEditor($('#tab-spec'), s, () => { renderRooms(); renderDoors(); renderTakeoff(); drawOverlay(); saveSoon(); });
+  $('#aiTier').value = S.project.aiTier || 'complex'; $('#aiTier').onchange = e => { S.project.aiTier = e.target.value; saveSoon(); };
+  $('#aiTierApplied').value = S.project.aiTierApplied ? `${tierLabel(S.project.aiTierApplied)} tier${S.project.aiTierAsked && S.project.aiTierAsked !== S.project.aiTierApplied ? ` (asked for ${S.project.aiTierAsked})` : ''}` : 'no reads yet';
   $('#specSaveDef').onclick = () => { try { localStorage.setItem('tdt.spec', JSON.stringify(S.spec)); toast('Saved as your defaults for new projects'); } catch (e) { toast('Could not save defaults in this browser'); } };
   $('#specReset').onclick = () => { undo.push(); S.spec = { ...DEFAULT_SPEC }; renderSpec(); renderAll(); toast('Spec reset'); };
 }
