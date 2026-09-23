@@ -106,6 +106,7 @@ function inferDoorType(s) {
   s = String(s || '').toUpperCase();
   if (/CAVITY/.test(s)) return 'cavity';
   if (/ROLLER|PANELIFT|SECTIONAL/.test(s)) return 'extother';
+  if (/HAMPER/.test(s)) return 'hinged';
   if (/BI-?FOLD/.test(s)) return 'bifold';
   if (/ROBE/.test(s) && /SLID/.test(s)) return 'robe';
   if (/STACK|ALUM|SLIDING DOOR|EXT.*SLID|GLASS SLID|PATIO/.test(s)) return 'extslide';
@@ -132,13 +133,34 @@ async function findTagsFromText(pn) {
   const lines = await pageLines(pn);
   if (!lines.length) return { doors: 0, windows: 0, sched: 0, noText: true };
   const sched = {}, marks = [];
+  const rowMates = T => {
+    const mates = lines.filter(l => l !== T && !TAG_RE.test(l.str) && !PLAN_TAG_RE.test(l.str) && Math.abs(l.cy - T.cy) < T.fs * 0.7 && l.x0 > T.x1 - T.fs && l.x0 - T.x1 < T.fs * 45).sort((a, b) => a.x0 - b.x0);
+    if (mates.length && mates[0].x0 - T.x1 > T.fs * 8) mates.length = 0;   // nearest cell too far away: not a table row
+    return mates;
+  };
   for (const T of lines) {
     const pm = T.str.match(PLAN_TAG_RE);
-    if (pm) { const info = parseCode(pm[1].toUpperCase(), pm[3]); if (info) { const tag = normTag(pm[1] + pm[2]); sched[tag] = info; marks.push({ tag, kind: info.kind, x: T.cx, y: T.cy }); continue; } }
+    if (pm) {
+      const kind = pm[1].toUpperCase(), tag = normTag(pm[1] + pm[2]); let code = pm[3];
+      const mates = rowMates(T), rowText = mates.map(l => l.str).join(' '), nums = (rowText.match(/\b\d{3,4}\b/g) || []).map(Number);
+      const cm = mates.length ? code.match(/^(.*\S)\s+(\d{3,4})$/) : null;             // width cell run into the mark cell: "2462OXXXXOSD 6228"
+      if (cm) { code = cm[1]; nums.unshift(+cm[2]); }
+      const info = parseCode(kind, code);
+      if (mates.length && nums.length) {                 // a schedule row whose mark cell carries the code: sizes from the cells, type from the code, no mark
+        const big = nums.filter(n => n >= 1900 && n <= 3300), small = nums.filter(n => n < 1900);
+        let h = big[0] || 0, w = small[0] || 0;
+        if (kind === 'D' && info) { w = info.w; if (!h) h = info.h; }         // hinged and cavity codes are the leaf size; the table width is the frame
+        else if (kind === 'D' && /PANELIFT|SECTIONAL|ROLLER/i.test(code)) { w = Math.max(0, ...nums.filter(n => n > 1500 && n < 6500)) || w; }
+        if (kind === 'W' && info) { h = info.h; w = info.w; }
+        sched[tag] = { kind, text: `${info ? info.text : code} ${rowText}`.trim(), h, w, fromTable: true };
+        continue;
+      }
+      if (!sched[tag] || !sched[tag].fromTable) sched[tag] = info || { kind, text: code, h: 0, w: 0 };
+      marks.push({ tag, kind, x: T.cx, y: T.cy }); continue;
+    }
     const m = T.str.match(TAG_RE); if (!m) continue;
     const tag = normTag(m[1] + m[2] + m[3]), kind = m[1].toUpperCase();
-    const mates = lines.filter(l => l !== T && !TAG_RE.test(l.str) && Math.abs(l.cy - T.cy) < T.fs * 0.7 && l.x0 > T.x1 - T.fs && l.x0 - T.x1 < T.fs * 45).sort((a, b) => a.x0 - b.x0);
-    if (mates.length && mates[0].x0 - T.x1 > T.fs * 8) mates.length = 0;   // nearest cell too far away: not a table row
+    const mates = rowMates(T);
     const rowText = mates.map(l => l.str).join(' ');
     const isRow = mates.length > 0 && (/\d{3,4}\s*[xX×]\s*\d{3,4}/.test(rowText) || (mates.length >= 2 && /HINGED|CAVITY|SLID|BI-?FOLD|ENTRY|EXTERNAL|AWNING|FIXED|CASEMENT|DOUBLE HUNG|STACKER|LOUVRE|OPENING|BARN|PIVOT|GLAZED|FLUSH|PANEL/i.test(rowText)));
     if (isRow) { const sz = rowText.match(/(\d{3,4})\s*[xX×]\s*(\d{3,4})/); sched[tag] = { kind, text: rowText, h: sz ? +sz[1] : 0, w: sz ? +sz[2] : 0 }; }
