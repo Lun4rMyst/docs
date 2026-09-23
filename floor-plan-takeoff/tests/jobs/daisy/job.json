@@ -1,0 +1,57 @@
+{
+ "dir": "daisy",
+ "pages": [
+  4,
+  5
+ ],
+ "max_x": 1000,
+ "skip_x_over": 1000,
+ "room_re": "^(garage|ldry|bath|wc|linen|bed \\d|robe|entry|ptry|kitchen|living/dining|living|dining|deck|sewing|study|guest bed|wir|ens|porch|alfresco)$",
+ "code_widths": {
+  "1200": 1250,
+  "870": 920,
+  "820": 870,
+  "720": 770,
+  "2462OXXXXOSD": 6228,
+  "1224OXXOSW": 2410,
+  "1215OXSW": 1510,
+  "1506DH": 610,
+  "1809DH": 910,
+  "1827DH": 2710,
+  "1818DH": 1810,
+  "1832FG(2 panels)": 3210,
+  "0612OXSW": 1210,
+  "0906OXSW": 610,
+  "1509FG": 910
+ },
+ "manual_plugs": {
+  "4": [
+   [
+    624,
+    559,
+    671,
+    564
+   ]
+  ],
+  "5": []
+ },
+ "erase": {
+  "4": [
+   [
+    287.5,
+    466,
+    290.5,
+    559
+   ],
+   [
+    408.5,
+    466,
+    411.5,
+    559
+   ]
+  ]
+ },
+ "tag_sheets": {
+  "16": 4
+ }
+}

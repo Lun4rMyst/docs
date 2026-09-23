@@ -1,0 +1,14 @@
+# client plans and everything extracted or rendered from them stay out of git
+*.pdf
+*.png
+node_modules/
+pdfjs/
+app/
+index.test.html
+jobs/*/img/
+jobs/*/vec*.json
+jobs/*/items.json
+jobs/*/*.txt
+jobs/*/*.csv
+jobs/*/*-takeoff*.json
+jobs/*/*-project.json

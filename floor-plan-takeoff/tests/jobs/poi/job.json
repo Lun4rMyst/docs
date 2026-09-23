@@ -1,0 +1,103 @@
+{
+ "dir": "poi",
+ "pages": [
+  3,
+  4
+ ],
+ "max_x": 900,
+ "room_re": "^(bed \\d|wir|wil|wll|ens\\w*|guest bath|guest bed|main bath|bath|l'dry|ldry|rumpus|linen|store|studio|study|lounge|living|dining|kitchen|butlers|pdr|wc|void|robe|garage|balcony|alfresco|porch|pool)$",
+ "code_widths": {
+  "1200": 1255,
+  "2418XOSD": 1810,
+  "870": 925,
+  "2424XOSD": 2410,
+  "2442OXXOSD": 4182,
+  "2427RD": 2710,
+  "870csd": 1740,
+  "2/720": 1640,
+  "1200csd": 2400,
+  "820 1400h": 870,
+  "2/820": 1640,
+  "720csd": 1440,
+  "820": 870,
+  "620": 670,
+  "2436XXOSD": 3582,
+  "720": 770,
+  "1020csd": 2040,
+  "2106FG": 610,
+  "2412FG": 1210,
+  "2409LW/1": 910,
+  "2409 2409 crn FG": 1800,
+  "2416FG(2 panels)": 1610,
+  "2412LW/2": 1197,
+  "0624FG": 2410,
+  "2109LW/1": 910,
+  "1224OXXOSW": 2410,
+  "2130FG(3 panels)": 3010,
+  "2306LW/1": 610,
+  "2106DH": 610,
+  "1215OXSW": 1510,
+  "12045DH": 460,
+  "0415FG": 1500,
+  "0906XOSW": 610,
+  "0915XOSW": 1510,
+  "0624OXXOSW": 2410
+ },
+ "manual_plugs": {
+  "3": [
+   [
+    635,
+    490,
+    638.5,
+    529
+   ],
+   [
+    716,
+    314,
+    769,
+    331
+   ],
+   [
+    615,
+    442,
+    638,
+    494
+   ]
+  ],
+  "4": [
+   [
+    566,
+    410,
+    609,
+    417
+   ],
+   [
+    603,
+    317.5,
+    659,
+    337.5
+   ]
+  ]
+ },
+ "stroke_walls": {
+  "min_width": 0.4,
+  "band_mm": 45,
+  "min_len": 150,
+  "closing_mm": 45
+ },
+ "tag_sheets": {
+  "8": 3,
+  "9": 4
+ },
+ "skip_x_over": 900,
+ "erase": {
+  "3": [
+   [
+    781,
+    338,
+    786.5,
+    396
+   ]
+  ]
+ }
+}
