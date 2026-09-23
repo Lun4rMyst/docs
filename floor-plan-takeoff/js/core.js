@@ -73,7 +73,8 @@ const DOOR_TYPES = {
   garage:   { label: 'Garage access (self-closing)', arch: 1, ext: true, hinges: true, lever: 'entrance', closer: true, fire: true },
   extslide: { label: 'External sliding / stacker (by others)', arch: 1, noLeaf: true, byOthers: true, lever: 'none', height: 2100, width: 2400 },
   extother: { label: 'External door by others (aluminium / pivot)', arch: 1, noLeaf: true, byOthers: true, lever: 'none' },
-  barn:     { label: 'Barn door', arch: 2, track: 'Barn door track set', lever: 'none' }
+  barn:     { label: 'Barn door', arch: 2, track: 'Barn door track set', lever: 'none' },
+  robeOthers: { label: 'Robe sliding doors (by robe supplier)', arch: 1, noLeaf: true, byOthers: true, lever: 'none', height: 2100 }
 };
 const LEVER_LABEL = { passage: 'Passage lever set', privacy: 'Privacy lever set', entrance: 'Entrance set', dummy: 'Dummy lever', cavity: 'Cavity slider set (flush pull)' };
 const WET_RE = /\b(BATH|BATHROOM|ENS|ENSUITE|WC|W\.C|PDR|POWDER|TOILET|LAUNDRY|LDRY|L'DRY)\b/i;

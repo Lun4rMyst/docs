@@ -5,6 +5,23 @@ const DIM_NUM = "(?:\\d{1,2}[.,]\\d{1,3}|\\d{3,5})";
 const DIM_RE = new RegExp(`^(${DIM_NUM})\\s*m?\\s*[xX×]\\s*(${DIM_NUM})\\s*m?$`);
 const LABEL_DIM_RE = new RegExp(`^(.*?)\\s+((?:${DIM_NUM})\\s*m?\\s*[xX×]\\s*(?:${DIM_NUM})\\s*m?)$`);
 const TAG_RE = /^([DW])\s?-?\s?(\d{1,3})\s?([A-Za-z]?)$/;
+const PLAN_TAG_RE = /^([DW])\s?-?\s?(\d{1,3})\s+(\S.*)$/i;   // tag and code on one line, as drawn on a plan: "D04 2424XOSD", "W18 12045DH OBS", "D11 2/720"
+function parseCode(kind, code) {
+  const c = code.replace(/\s+OBS$/i, '').trim(), U = c.toUpperCase(), dh = num(S.spec.doorHeight, 2040); let m;
+  if (kind === 'D') {
+    if ((m = U.match(/^2\/(\d{3,4})\s*(CSD)?$/))) return { kind, text: `${c} ${m[2] ? 'cavity slider' : 'hinged'} pair`, h: dh, w: +m[1] };
+    if ((m = U.match(/^(\d{3,4})\s*CSD$/))) return { kind, text: `${c} cavity slider`, h: dh, w: +m[1] };
+    if ((m = U.match(/^(\d{3,4})\s+(\d{3,4})H$/))) return { kind, text: `${c} hinged, reduced height`, h: +m[2], w: +m[1] };
+    if ((m = U.match(/^(\d{2})(\d{2})[A-Z]*RD$/))) return { kind, text: `${c} roller door`, h: +m[1] * 100, w: +m[2] * 100 };
+    if ((m = U.match(/^(\d{2})(\d{2})[A-Z]*SD$/))) return { kind, text: `${c} external sliding door`, h: +m[1] * 100, w: +m[2] * 100 };
+    if ((m = U.match(/^(\d{3,4})$/))) return { kind, text: `${c} hinged`, h: dh, w: +m[1] };
+    return null;
+  }
+  if ((m = U.match(/^(\d{2})(\d{2})\s+\d{4}\s+CRN/))) return { kind, text: `${c} corner window`, h: +m[1] * 100, w: +m[2] * 200 };
+  if ((m = U.match(/^(\d{2})(\d{3})[A-Z]/))) return { kind, text: c, h: +m[1] * 100, w: +m[2] * 10 };       // 12045DH = 1200 h x 450 w
+  if ((m = U.match(/^(\d{2})(\d{2})[A-Z]/))) return { kind, text: c, h: +m[1] * 100, w: +m[2] * 100 };      // 0624OXXOSW = 600 h x 2400 w
+  return null;
+}
 const SCALE_RE = /\b1\s*:\s*(\d{2,4})\b/;
 const toMm = s => { const v = parseFloat(String(s).replace(',', '.')); return v < 100 ? Math.round(v * 1000) : Math.round(v); };
 const norm = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
@@ -88,6 +105,7 @@ async function findRoomsFromText(pn) {
 function inferDoorType(s) {
   s = String(s || '').toUpperCase();
   if (/CAVITY/.test(s)) return 'cavity';
+  if (/ROLLER|PANELIFT|SECTIONAL/.test(s)) return 'extother';
   if (/BI-?FOLD/.test(s)) return 'bifold';
   if (/ROBE/.test(s) && /SLID/.test(s)) return 'robe';
   if (/STACK|ALUM|SLIDING DOOR|EXT.*SLID|GLASS SLID|PATIO/.test(s)) return 'extslide';
@@ -115,6 +133,8 @@ async function findTagsFromText(pn) {
   if (!lines.length) return { doors: 0, windows: 0, sched: 0, noText: true };
   const sched = {}, marks = [];
   for (const T of lines) {
+    const pm = T.str.match(PLAN_TAG_RE);
+    if (pm) { const info = parseCode(pm[1].toUpperCase(), pm[3]); if (info) { const tag = normTag(pm[1] + pm[2]); sched[tag] = info; marks.push({ tag, kind: info.kind, x: T.cx, y: T.cy }); continue; } }
     const m = T.str.match(TAG_RE); if (!m) continue;
     const tag = normTag(m[1] + m[2] + m[3]), kind = m[1].toUpperCase();
     const mates = lines.filter(l => l !== T && !TAG_RE.test(l.str) && Math.abs(l.cy - T.cy) < T.fs * 0.7 && l.x0 > T.x1 - T.fs && l.x0 - T.x1 < T.fs * 45).sort((a, b) => a.x0 - b.x0);
